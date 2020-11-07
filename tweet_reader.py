@@ -5,6 +5,15 @@ import tweepy
 
 filepath = 'E:/Work/tweet.js'
 
+access_token = ''
+access_token_secret = ''
+consumer_key = None
+consumer_secret = None
+
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+
+api = tweepy.API(auth)
 
 def convert_js_file(filepath):
     with io.open(filepath, encoding='utf8') as js_file:
