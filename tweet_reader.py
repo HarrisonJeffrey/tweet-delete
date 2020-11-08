@@ -1,14 +1,22 @@
 import json
 import io
+from pathlib import Path
 import pandas as pd
 import tweepy
 
 filepath = 'E:/Work/tweet.js'
+token_filepath = Path('consumer_token.txt')
 
 access_token = ''
 access_token_secret = ''
-consumer_key = None
-consumer_secret = None
+
+if token_filepath.exists():
+    with open(token_filepath, 'w') as f:
+        consumer_key = f.readline().strip()
+        consumer_secret = f.readline().strip()
+else:
+    consumer_key = None
+    consumer_secret = None
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
