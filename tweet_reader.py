@@ -1,19 +1,19 @@
-import json
+from decouple import config
 import io
+import json
 from pathlib import Path
 import pandas as pd
 import tweepy
 
-filepath = 'E:/Work/tweet.js'
-token_filepath = Path('consumer_token.txt')
+filepath = 'tweet.js'
+token_filepath = Path('.env')
 
-access_token = ''
-access_token_secret = ''
+access_token = config('access_token')
+access_token_secret = config('access_token_secret')
 
 if token_filepath.exists():
-    with open(token_filepath, 'w') as f:
-        consumer_key = f.readline().strip()
-        consumer_secret = f.readline().strip()
+    consumer_key = config('consumer_key')
+    consumer_secret = config('consumer_secret')
 else:
     consumer_key = None
     consumer_secret = None
@@ -22,6 +22,7 @@ auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 
 api = tweepy.API(auth)
+
 
 def convert_js_file(filepath):
     with io.open(filepath, encoding='utf8') as js_file:
@@ -46,3 +47,4 @@ def get_tweets_by_date(tweets, start=None, end=None):
 
 
 tweets = convert_js_file(filepath)
+print(tweets.iloc[0])
