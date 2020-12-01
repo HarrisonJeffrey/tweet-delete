@@ -1,7 +1,7 @@
 from decouple import config
 import webbrowser
 import tweepy
-from tweet_reader import convert_js_file
+from tweet_reader import convert_js_file, get_tweets_by_date
 
 
 def tweepy_auth():
@@ -31,6 +31,11 @@ def main():
     api = tweepy_auth()
 
     filepath = 'tweet.js'
-
     tweets = convert_js_file(filepath)
-    print(tweets.iloc[0])
+
+    # id = '1333848716311224320'
+    # api.destroy_status(id)
+
+
+if __name__ == '__main__':
+    main()
