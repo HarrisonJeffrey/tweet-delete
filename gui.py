@@ -7,6 +7,7 @@ from PIL import ImageTk, Image
 from decouple import config
 import webbrowser
 from tweet_reader import convert_js_file, get_tweets_by_date
+import pandas as pd
 
 
 class TweetDelete(tk.Tk):
@@ -15,8 +16,13 @@ class TweetDelete(tk.Tk):
 
         self.title("Tweet Delete")
         self.resizable(False, False)
-        self.twitter_logo = ImageTk.PhotoImage(Image.open('Twitter_Logo_Blue.png'))
+        img = Image.open('Twitter_Logo_Blue.png')
+        img = img.resize((100, 100), Image.ANTIALIAS)
+        self.twitter_logo = ImageTk.PhotoImage(img)
         self.iconphoto(False, self.twitter_logo)
+
+        self.tweets = None
+        self.api = None
 
         container = tk.Frame(self)
         container.pack()
@@ -40,34 +46,35 @@ class TweetStartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        self.parent = parent
 
         consumer_key = config('consumer_key')
         consumer_secret = config('consumer_secret')
 
         self.auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        self.api = None
         self.redirect_url = None
-        self.tweets = None
         self.verify = [False, False]
 
-        img = Image.open('Twitter_Logo_Blue.png')
-        img = img.resize((100, 100), Image.ANTIALIAS)
-        self.twitter_logo = ImageTk.PhotoImage(img)
+        self.twitter_logo = controller.twitter_logo
         ttk.Label(self, image=self.twitter_logo).grid(row=0, column=0, pady=5, padx=5)
         ttk.Label(self, text="Welcome to Tweet Delete!").grid(row=0, column=1, columnspan=3, pady=5, padx=5)
 
-        ttk.Label(self, text="To delete tweets we need two things from you!").grid(row=1, column=0, columnspan=10, pady=1, padx=5)
-        ttk.Label(self, text="1) The tweet.js file from your Twitter archive").grid(row=2, column=0, columnspan=10, pady=1, padx=5)
-        ttk.Label(self, text="2) Your access token").grid(row=3, column=0, columnspan=10, pady=1, padx=5)
-        ttk.Label(self, text="Notice: This app doesn't not store any data, so your twitter archive and access tokens are completely private!", wraplength=350).grid(row=5, column=0, columnspan=10, pady=20, padx=5)
+        ttk.Label(self, text="To delete tweets we need two things from you!").grid(row=1, column=0, columnspan=10,
+                                                                                   pady=1, padx=5)
+        ttk.Label(self, text="1) The tweet.js file from your Twitter archive").grid(row=2, column=0, columnspan=10,
+                                                                                    pady=1, padx=5)
+        ttk.Label(self, text="2) Your access token").grid(row=3, column=0, columnspan=10, pady=1, padx=10)
+        ttk.Label(self,
+                  text="Notice: This app doesn't not store any data, so your twitter archive and access tokens are completely private!",
+                  wraplength=350).grid(row=5, column=0, columnspan=10, pady=20, padx=5)
         ttk.Button(self, text='Get access code', command=self.grab_auth).grid(row=6, column=0, pady=10, padx=1)
         self.verifier = tk.StringVar()
         ttk.Label(self, text="Access Code: ").grid(row=6, column=2)
         ttk.Entry(self, width=10, textvariable=self.verifier).grid(row=6, column=3, pady=5, padx=1)
 
-        ttk.Button(self, text="Load tweet.js", command=self.load_file).grid(row=7, column=0, columnspan=10, pady=5, padx=2)
+        ttk.Button(self, text="Load tweet.js", command=self.load_file).grid(row=7, column=0, pady=5, padx=2)
         self.loaded_message = tk.StringVar()
-        ttk.Label(self, textvariable=self.loaded_message, wraplength=300).grid(row=8, column=0, columnspan=10)
+        ttk.Label(self, textvariable=self.loaded_message, wraplength=200).grid(row=7, column=1, columnspan=7)
 
         self.message = tk.StringVar()
         ttk.Label(self, textvariable=self.message, wraplength=300).grid(row=9, column=0, columnspan=10, pady=5, padx=1)
@@ -90,7 +97,7 @@ class TweetStartPage(tk.Frame):
         tweets_filepath = askopenfilename(initialdir="C:/", title="Select tweets.js file",
                                           filetypes=(('json files', '*.js'), ('All files', '*')))
         try:
-            self.tweets = convert_js_file(tweets_filepath)
+            self.controller.tweets = convert_js_file(tweets_filepath)
             self.message.set('')
             self.loaded_message.set(f'Tweets file at {tweets_filepath} loaded!')
             self.verify[0] = True
@@ -103,7 +110,7 @@ class TweetStartPage(tk.Frame):
     def verify_auth(self):
         try:
             self.auth.get_access_token(self.verifier.get())
-            self.api = tweepy.API(self.auth)
+            self.controller.api = tweepy.API(self.auth)
             self.message.set('')
             self.verify[1] = True
         except tweepy.TweepError:
@@ -125,7 +132,35 @@ class TweetStartPage(tk.Frame):
 class TweetFilterPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        ttk.Label(self, text="test")
+        self.controller = controller
+        self.tweets = None
+
+        ttk.Label(self, text='Start').grid(row=0, column=1, padx=10)
+        ttk.Label(self, text='(YYYY-MM-DD)').grid(row=1, column=1, padx=10)
+        self.start = tk.StringVar()
+        ttk.Entry(self, width=12, textvariable=self.start, font='Courier 12').grid(row=2, column=1, sticky='n',
+                                                                                   pady=5, padx=15)
+
+        ttk.Label(self, text='End').grid(row=0, column=3, padx=10)
+        ttk.Label(self, text='(YYYY-MM-DD)').grid(row=1, column=3, padx=10)
+        self.end = tk.StringVar()
+        ttk.Entry(self, width=12, textvariable=self.end, font='Courier 12').grid(row=2, column=3, sticky='n',
+                                                                                 pady=5, padx=15)
+
+        ttk.Button(self, text='Update', command=self.update).grid(row=3, column=0, columnspan=10, pady=5)
+        self.message = tk.StringVar()
+        ttk.Label(self, textvariable=self.message).grid(row=4, column=0, columnspan=10)
+
+    def update(self):
+        try:
+            start = pd.to_datetime(self.start.get(), infer_datetime_format=True)
+            end = pd.to_datetime(self.end.get(), infer_datetime_format=True)
+
+            self.tweets = get_tweets_by_date(self.controller.tweets, start, end)
+            self.message.set('')
+        except ValueError as e:
+            print(e)
+            self.message.set('Date incorrect. Did you input it in the YYYY-MM-DD format?')
 
 
 class TweetDeletePage(tk.Frame):
