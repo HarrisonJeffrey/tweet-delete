@@ -13,9 +13,10 @@ def convert_js_file(filepath):
     tweets = pd.DataFrame(tweets_dict)
     tweets = tweets.drop(labels=['retweeted', 'source', 'entities', 'display_text_range', 'favorite_count', 'id_str', 'truncated', 'retweet_count', 'favorited', 'lang'], axis=1)
     tweets['created_at'] = pd.to_datetime(tweets['created_at'], format='%a %b %d %H:%M:%S %z %Y')
-    tweets['date'] = tweets['created_at'].dt.date
+    tweets['day'] = tweets['created_at'].dt.day
+    tweets['month_year'] = tweets['created_at'].dt.strftime('%B %Y')
 
-    return tweets.sort_values(by='date')
+    return tweets.sort_values(by='created_at')
 
 
 def get_tweets_by_date(tweets, start=None, end=None):

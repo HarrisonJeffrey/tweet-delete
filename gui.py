@@ -8,6 +8,7 @@ from decouple import config
 import webbrowser
 from tweet_reader import convert_js_file, get_tweets_by_date
 import pandas as pd
+import datetime
 
 
 class TweetDelete(tk.Tk):
@@ -16,6 +17,8 @@ class TweetDelete(tk.Tk):
 
         self.title("Tweet Delete")
         self.resizable(False, False)
+        self.geometry('320x420')
+
         img = Image.open('Twitter_Logo_Blue.png')
         img = img.resize((100, 100), Image.ANTIALIAS)
         self.twitter_logo = ImageTk.PhotoImage(img)
@@ -23,13 +26,15 @@ class TweetDelete(tk.Tk):
 
         self.tweets = None
         self.api = None
+        self.view_tweets = None
+        self.view_month = None
 
         container = tk.Frame(self)
         container.pack()
 
         self.frames = {}
 
-        for F in (TweetStartPage, TweetFilterPage, TweetDeletePage):
+        for F in (TweetStartPage, TweetMonthsPage, TweetFilterPage, TweetDeletePage):
             frame = F(container, self)
 
             self.frames[F] = frame
@@ -120,47 +125,111 @@ class TweetStartPage(tk.Frame):
             self.verify[1] = False
 
     def next_page(self):
-        self.verify_auth()
+        # DELETE AFTER DEBUG
+        self.controller.frames[TweetMonthsPage].show_months()
+        self.controller.show_frame(TweetMonthsPage)
 
-        if False in self.verify:
-            self.message.set("Something isn't right. Have you loaded your tweets.js archive and verified access?")
-        else:
-            self.message.set("")
-            self.controller.show_frame(TweetFilterPage)
+        # UNCOMMENT AFTER DEBUG
+        # self.verify_auth()
+        #
+        # if False in self.verify:
+        #     self.message.set("Something isn't right. Have you loaded your tweets.js archive and verified access?")
+        # else:
+        #     self.message.set("")
+        #     self.controller.show_frame(TweetMonthsPage)
+
+
+class TweetMonthsPage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        tk.Label(self, text="Select a month below to start browsing tweets to delete.", wraplength=350).grid(row=0, column=0, columnspan=10, padx=10, pady=10)
+
+        self.canvas = tk.Canvas(self)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+        self.scrollable_frame.bind("<Configure>",
+                                   lambda e: self.canvas.configure(
+                                       scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.canvas.grid(row=1, column=0, columnspan=9)
+        self.scrollbar.grid(row=1, column=9, sticky='ns')
+
+    def show_months(self):
+        self.controller.geometry('400x360')
+        try:
+            unique_dates = self.controller.tweets['month_year'].unique().tolist()
+            for i, date in enumerate(unique_dates):
+                tk.Button(self.scrollable_frame, width=12, text=date, command=lambda date=date: self.view_month(date)).grid(row=i+1, column=0, columnspan=10, padx=5, pady=5)
+        except TypeError:
+            print("Error. Tweets not loaded.")
+
+    def view_month(self, date):
+        tweets_month = self.controller.tweets[self.controller.tweets['month_year'] == date]
+        self.controller.view_tweets = tweets_month
+        self.controller.view_month = date
+        self.controller.frames[TweetFilterPage].show_tweets()
+        self.controller.show_frame(TweetFilterPage)
 
 
 class TweetFilterPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.tweets = None
 
-        ttk.Label(self, text='Start').grid(row=0, column=1, padx=10)
-        ttk.Label(self, text='(YYYY-MM-DD)').grid(row=1, column=1, padx=10)
-        self.start = tk.StringVar()
-        ttk.Entry(self, width=12, textvariable=self.start, font='Courier 12').grid(row=2, column=1, sticky='n',
-                                                                                   pady=5, padx=15)
-
-        ttk.Label(self, text='End').grid(row=0, column=3, padx=10)
-        ttk.Label(self, text='(YYYY-MM-DD)').grid(row=1, column=3, padx=10)
-        self.end = tk.StringVar()
-        ttk.Entry(self, width=12, textvariable=self.end, font='Courier 12').grid(row=2, column=3, sticky='n',
-                                                                                 pady=5, padx=15)
-
-        ttk.Button(self, text='Update', command=self.update).grid(row=3, column=0, columnspan=10, pady=5)
         self.message = tk.StringVar()
-        ttk.Label(self, textvariable=self.message).grid(row=4, column=0, columnspan=10)
+        self.selected_tweets = None
+        ttk.Label(self, textvariable=self.message).grid(row=1, column=0, columnspan=10)
 
-    def update(self):
+        self.canvas = tk.Canvas(self)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+        self.scrollable_frame.bind("<Configure>",
+                                   lambda e: self.canvas.configure(
+                                       scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set, width=780, height=400)
+        self.canvas.grid(row=1, column=0, columnspan=9)
+        self.scrollbar.grid(row=1, column=10, sticky='ns')
+
+        #TODO also add a button to delete all tweets (with confirmation)
+        #TODO make radio button unclickable
+
+    def show_tweets(self):
+        self.controller.geometry('800x500')
+        self.controller.resizable(True, True)
+        self.scrollable_frame.configure(width=780, height=400)
+        ttk.Label(self, text=f"Tweets from {self.controller.view_month}").grid(row=0, column=0, columnspan=10, padx=10, pady=10)
+        self.selected_tweets = [tk.IntVar() for x in range(len(self.controller.view_tweets))]
         try:
-            start = pd.to_datetime(self.start.get(), infer_datetime_format=True)
-            end = pd.to_datetime(self.end.get(), infer_datetime_format=True)
+            for i in range(len(self.controller.view_tweets)):
+                tk.Radiobutton(self.scrollable_frame, variable=self.selected_tweets[i], value=1).grid(row=4+i+1, column=0)
+                tk.Label(self.scrollable_frame, text=f"{self.controller.view_tweets['day'].iloc[i]} {self.controller.view_tweets['month_year'].iloc[i]}",
+                         borderwidth=2, relief="ridge").grid(row=4+i+1, column=1)
+                tk.Label(self.scrollable_frame, text=self.controller.view_tweets['full_text'].iloc[i],
+                         borderwidth=2, relief="ridge", wraplength=620, anchor="w").grid(sticky="W", row=4+i+1, column=2, columnspan=7, padx=5)
 
-            self.tweets = get_tweets_by_date(self.controller.tweets, start, end)
-            self.message.set('')
-        except ValueError as e:
-            print(e)
-            self.message.set('Date incorrect. Did you input it in the YYYY-MM-DD format?')
+            self.canvas.config(scrollregion=self.canvas.bbox("all"))
+        except TypeError:
+            print("No tweets loaded")
+
+    def grab_tweets(self):
+        try:
+            page_tweets = (self.page.get() + 1) * 10
+            if len(self.controller.tweets) < page_tweets:
+                print(page_tweets)
+                print(len(self.controller.tweets))
+                page_tweets = page_tweets - (len(self.controller.tweets) - page_tweets)
+            for i in range(self.page.get(), page_tweets):
+                tk.Radiobutton(self, padx=20, variable=self.selected_tweets[i], value=1).grid(row=4+i+1, column=0)
+                tk.Label(self, text=self.controller.tweets['created_at'].iloc[i]).grid(row=4+i+1, column=1, columnspan=2)
+                tk.Label(self, text=self.controller.tweets['full_text'].iloc[i]).grid(row=4+i+1, column=3, columnspan=7)
+        except TypeError:
+            print("No tweets loaded")
 
 
 class TweetDeletePage(tk.Frame):
