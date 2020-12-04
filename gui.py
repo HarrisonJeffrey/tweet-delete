@@ -158,6 +158,8 @@ class TweetMonthsPage(tk.Frame):
         self.canvas.grid(row=1, column=0, columnspan=9)
         self.scrollbar.grid(row=1, column=9, sticky='ns')
 
+        #TODO make buttons centered (or wrap)
+
     def show_months(self):
         self.controller.geometry('400x360')
         try:
@@ -198,6 +200,7 @@ class TweetFilterPage(tk.Frame):
 
         #TODO also add a button to delete all tweets (with confirmation)
         #TODO make radio button unclickable
+        #TODO make canvas resizable
 
     def show_tweets(self):
         self.controller.geometry('800x500')
