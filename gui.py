@@ -193,14 +193,13 @@ class TweetFilterPage(tk.Frame):
 
         self.select_all_check = tk.IntVar()
         tk.Checkbutton(self, command=self.select_all, variable=self.select_all_check).grid(sticky="W", row=3, column=0, padx=2)
-        tk.Label(self, text="Select All", anchor='w').grid(sticky="W", row=3, column=1, columnspan=4, padx=5)
+        tk.Label(self, text="Select All", anchor='w').grid(sticky="W", row=3, column=1, columnspan=3, padx=5)
         self.confirm_button = tk.Button(self, text="Confirm Delete", command=self.delete, bg='red')
         self.delete_button = tk.Button(self, text="Delete Selected", command=self.confirm,
-                                       bg='orange').grid(row=3, column=5)
+                                       bg='orange').grid(row=3, column=4)
         self.back_button = tk.Button(self, text="Back", command=self.back, width='10').grid(row=3, column=8)
 
         #TODO also add a button to delete all tweets (with confirmation)
-        #TODO make canvas resizable
 
     def build_canvas(self):
         self.canvas = tk.Canvas(self)
@@ -255,11 +254,22 @@ class TweetFilterPage(tk.Frame):
                 self.selected_tweets[i].set(1)
 
     def confirm(self):
-        self.confirm_button.grid(row=3, column=6)
+        self.confirm_button.grid(row=3, column=5)
 
     def delete(self):
-        selected = [1 for i in self.selected_tweets if i.get() == 1]
+        selected = [check.get() for check in self.selected_tweets]
+        select_indices = [i for i, x in enumerate(selected) if x == 1]
+        self.controller.view_tweets = self.controller.view_tweets.iloc[select_indices, :]
         print(f"Deleting {selected.count(1)} tweets!")
+        print(self.controller.view_tweets)
+
+        try:
+            for tweet in self.controller.view_tweets:
+                print(tweet)
+                self.controller.api.destroy_status(tweet['id'])
+        except AttributeError as e:
+            print(e)
+            print("API not found")
 
     def back(self):
         self.confirm_button.grid_forget()
