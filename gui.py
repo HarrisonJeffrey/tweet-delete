@@ -158,14 +158,13 @@ class TweetMonthsPage(tk.Frame):
         self.canvas.grid(row=1, column=0, columnspan=9)
         self.scrollbar.grid(row=1, column=9, sticky='ns')
 
-        #TODO make buttons centered (or wrap)
-
     def show_months(self):
         self.controller.geometry('400x360')
         try:
             unique_dates = self.controller.tweets['month_year'].unique().tolist()
+            cols = list(range(0, 9, 3))*(len(unique_dates)//3+1)
             for i, date in enumerate(unique_dates):
-                tk.Button(self.scrollable_frame, width=12, text=date, command=lambda date=date: self.view_month(date)).grid(row=i+1, column=0, columnspan=10, padx=5, pady=5)
+                tk.Button(self.scrollable_frame, width=15, text=date, command=lambda date=date: self.view_month(date)).grid(row=i//3, column=cols[i], columnspan=3, padx=5, pady=5)
         except TypeError:
             print("Error. Tweets not loaded.")
 
@@ -187,6 +186,18 @@ class TweetFilterPage(tk.Frame):
         ttk.Label(self, textvariable=self.message).grid(row=1, column=0, columnspan=10)
 
         self.canvas = tk.Canvas(self)
+        self.scrollbar = ttk.Scrollbar(self)
+        self.scrollable_frame = ttk.Frame(self)
+
+        self.build_canvas()
+
+        self.back_button = tk.Button(self, text="Back", command=self.back, width='10').grid(row=2, column=8)
+
+        #TODO also add a button to delete all tweets (with confirmation)
+        #TODO make canvas resizable
+
+    def build_canvas(self):
+        self.canvas = tk.Canvas(self)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas)
         self.scrollable_frame.bind("<Configure>",
@@ -195,26 +206,22 @@ class TweetFilterPage(tk.Frame):
 
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set, width=780, height=400)
-        self.canvas.grid(row=1, column=0, columnspan=9)
+        self.canvas.grid(row=1, column=0, columnspan=9, pady=10)
         self.scrollbar.grid(row=1, column=10, sticky='ns')
-
-        #TODO also add a button to delete all tweets (with confirmation)
-        #TODO make radio button unclickable
-        #TODO make canvas resizable
 
     def show_tweets(self):
         self.controller.geometry('800x500')
-        self.controller.resizable(True, True)
+        self.controller.resizable(False, True)
         self.scrollable_frame.configure(width=780, height=400)
         ttk.Label(self, text=f"Tweets from {self.controller.view_month}").grid(row=0, column=0, columnspan=10, padx=10, pady=10)
         self.selected_tweets = [tk.IntVar() for x in range(len(self.controller.view_tweets))]
         try:
             for i in range(len(self.controller.view_tweets)):
-                tk.Radiobutton(self.scrollable_frame, variable=self.selected_tweets[i], value=1).grid(row=4+i+1, column=0)
+                tk.Checkbutton(self.scrollable_frame, variable=self.selected_tweets[i]).grid(row=4+i+1, column=0)
                 tk.Label(self.scrollable_frame, text=f"{self.controller.view_tweets['day'].iloc[i]} {self.controller.view_tweets['month_year'].iloc[i]}",
-                         borderwidth=2, relief="ridge").grid(row=4+i+1, column=1)
-                tk.Label(self.scrollable_frame, text=self.controller.view_tweets['full_text'].iloc[i],
-                         borderwidth=2, relief="ridge", wraplength=620, anchor="w").grid(sticky="W", row=4+i+1, column=2, columnspan=7, padx=5)
+                         bg='white', borderwidth=2, relief="ridge").grid(row=4+i+1, column=1)
+                tk.Label(self.scrollable_frame, text=self.controller.view_tweets['full_text'].iloc[i], width=93, bg='white',
+                         borderwidth=2, relief="ridge", wraplength=650, anchor="w").grid(sticky="W", row=4+i+1, column=2, columnspan=7, padx=5)
 
             self.canvas.config(scrollregion=self.canvas.bbox("all"))
         except TypeError:
@@ -230,9 +237,14 @@ class TweetFilterPage(tk.Frame):
             for i in range(self.page.get(), page_tweets):
                 tk.Radiobutton(self, padx=20, variable=self.selected_tweets[i], value=1).grid(row=4+i+1, column=0)
                 tk.Label(self, text=self.controller.tweets['created_at'].iloc[i]).grid(row=4+i+1, column=1, columnspan=2)
-                tk.Label(self, text=self.controller.tweets['full_text'].iloc[i]).grid(row=4+i+1, column=3, columnspan=7)
+                tk.Label(self, text=self.controller.tweets['full_text'].iloc[i]).grid(row=4+i+1, column=3, columnspan=7, padx=5)
         except TypeError:
             print("No tweets loaded")
+
+    def back(self):
+        self.build_canvas()
+        self.controller.geometry('400x360')
+        self.controller.show_frame(TweetMonthsPage)
 
 
 class TweetDeletePage(tk.Frame):
