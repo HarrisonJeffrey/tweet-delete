@@ -182,7 +182,7 @@ class TweetFilterPage(tk.Frame):
         self.controller = controller
 
         self.message = tk.StringVar()
-        self.selected_tweets = None
+        self.selected_tweets = []
         ttk.Label(self, textvariable=self.message).grid(row=1, column=0, columnspan=10)
 
         self.canvas = tk.Canvas(self)
@@ -191,7 +191,13 @@ class TweetFilterPage(tk.Frame):
 
         self.build_canvas()
 
-        self.back_button = tk.Button(self, text="Back", command=self.back, width='10').grid(row=2, column=8)
+        self.select_all_check = tk.IntVar()
+        tk.Checkbutton(self, command=self.select_all, variable=self.select_all_check).grid(sticky="W", row=3, column=0, padx=2)
+        tk.Label(self, text="Select All", anchor='w').grid(sticky="W", row=3, column=1, columnspan=4, padx=5)
+        self.confirm_button = tk.Button(self, text="Confirm Delete", command=self.delete, bg='red')
+        self.delete_button = tk.Button(self, text="Delete Selected", command=self.confirm,
+                                       bg='orange').grid(row=3, column=5)
+        self.back_button = tk.Button(self, text="Back", command=self.back, width='10').grid(row=3, column=8)
 
         #TODO also add a button to delete all tweets (with confirmation)
         #TODO make canvas resizable
@@ -241,7 +247,22 @@ class TweetFilterPage(tk.Frame):
         except TypeError:
             print("No tweets loaded")
 
+    def select_all(self):
+        for i in range(len(self.selected_tweets)):
+            if self.selected_tweets[i].get():
+                self.selected_tweets[i].set(0)
+            else:
+                self.selected_tweets[i].set(1)
+
+    def confirm(self):
+        self.confirm_button.grid(row=3, column=6)
+
+    def delete(self):
+        selected = [1 for i in self.selected_tweets if i.get() == 1]
+        print(f"Deleting {selected.count(1)} tweets!")
+
     def back(self):
+        self.confirm_button.grid_forget()
         self.build_canvas()
         self.controller.geometry('400x360')
         self.controller.show_frame(TweetMonthsPage)
