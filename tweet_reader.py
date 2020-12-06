@@ -26,3 +26,11 @@ def get_tweets_by_date(tweets, start=None, end=None):
         return tweets[tweets['created_at'] >= start]
     elif end:
         return tweets[tweets['created_at'] <= end]
+
+
+def grab_bad_words():
+    with open('google_profanity_words.txt') as f:
+        bad_words = f.readlines()
+    bad_words = [word.strip() for word in bad_words]
+
+    return bad_words

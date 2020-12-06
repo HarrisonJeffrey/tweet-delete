@@ -6,9 +6,7 @@ import tweepy
 from PIL import ImageTk, Image
 from decouple import config
 import webbrowser
-from tweet_reader import convert_js_file, get_tweets_by_date
-import pandas as pd
-import datetime
+from tweet_reader import convert_js_file, grab_bad_words
 
 
 class TweetDelete(tk.Tk):
@@ -159,11 +157,11 @@ class TweetMonthsPage(tk.Frame):
         self.scrollbar.grid(row=1, column=9, sticky='ns')
 
         #TODO bad word filter
-        tk.Button(self, text="Grab tweets with bad words only!", command=self.bad_words).grid(row=2, column=0, columnspan=7, pady=10)
+        tk.Button(self, text="Grab tweets with bad words only!\n(This may take some time if you have a lot of tweets!)", command=self.bad_words).grid(row=2, column=0, columnspan=7, pady=10, padx=10)
         tk.Button(self, text="Delete all tweets!", bg='red', command=self.delete_all).grid(row=2, column=8, pady=10)
 
     def show_months(self):
-        self.controller.geometry('400x360')
+        self.controller.geometry('427x375')
         try:
             unique_dates = self.controller.tweets['month_year'].unique().tolist()
             cols = list(range(0, 9, 3))*(len(unique_dates)//3+1)
@@ -180,8 +178,19 @@ class TweetMonthsPage(tk.Frame):
         self.controller.show_frame(TweetFilterPage)
 
     def bad_words(self):
-        #TODO list of bad words
-        pass
+        bad_words = grab_bad_words()
+        view_tweets = self.controller.tweets.copy()
+        view_tweets['bad_word'] = view_tweets['full_text'].apply(lambda tweet: any([word in tweet for word in bad_words]))
+        self.controller.view_tweets = view_tweets[view_tweets['bad_word']]
+
+        if len(self.controller.view_tweets) > 0:
+            extra = 'naughty, naughty!'
+        else:
+            extra = 'there is nothing here, you angel!'
+
+        self.controller.view_month = f'all time with bad words - {extra}'
+        self.controller.frames[TweetFilterPage].show_tweets()
+        self.controller.show_frame(TweetFilterPage)
 
     def delete_all(self):
         #TODO take to confirmation page then delete every tweet
@@ -222,12 +231,12 @@ class TweetFilterPage(tk.Frame):
                                        scrollregion=self.canvas.bbox("all")))
 
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=self.scrollbar.set, width=780, height=400)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set, width=800, height=400)
         self.canvas.grid(row=1, column=0, columnspan=9, pady=10)
         self.scrollbar.grid(row=1, column=10, sticky='ns')
 
     def show_tweets(self):
-        self.controller.geometry('800x500')
+        self.controller.geometry('825x500')
         self.controller.resizable(False, True)
         self.scrollable_frame.configure(width=780, height=400)
         ttk.Label(self, text=f"Tweets from {self.controller.view_month}").grid(row=0, column=0, columnspan=10, padx=10, pady=10)
@@ -287,7 +296,7 @@ class TweetFilterPage(tk.Frame):
         self.selected_tweets = [check.set(0) for check in self.selected_tweets]
         self.confirm_button.grid_forget()
         self.build_canvas()
-        self.controller.geometry('400x360')
+        self.controller.geometry('427x375')
         self.controller.show_frame(TweetMonthsPage)
 
 
