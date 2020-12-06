@@ -193,8 +193,8 @@ class TweetMonthsPage(tk.Frame):
         self.controller.show_frame(TweetFilterPage)
 
     def delete_all(self):
-        #TODO take to confirmation page then delete every tweet
-        pass
+        self.controller.geometry('380x150')
+        self.controller.show_frame(TweetDeletePage)
 
 
 class TweetFilterPage(tk.Frame):
@@ -219,8 +219,6 @@ class TweetFilterPage(tk.Frame):
         self.delete_button = tk.Button(self, text="Delete Selected", command=self.confirm,
                                        bg='orange').grid(row=3, column=4)
         self.back_button = tk.Button(self, text="Back", command=self.back, width='10').grid(row=3, column=8)
-
-        #TODO also add a button to delete all tweets (with confirmation)
 
     def build_canvas(self):
         self.canvas = tk.Canvas(self)
@@ -286,6 +284,8 @@ class TweetFilterPage(tk.Frame):
         try:
             for tweet_id in self.controller.view_tweets['id']:
                 self.controller.api.destroy_status(tweet_id)
+
+            self.message.set("All tweets deleted! Press 'back' to select other months.")
         except AttributeError as e:
             print(f"{e}\nAPI not found")
         except tweepy.error.TweepError as e:
@@ -293,6 +293,7 @@ class TweetFilterPage(tk.Frame):
             self.message.set("Tweet(s) already deleted!")
 
     def back(self):
+        self.select_all_check.set(0)
         self.selected_tweets = [check.set(0) for check in self.selected_tweets]
         self.confirm_button.grid_forget()
         self.build_canvas()
@@ -303,3 +304,22 @@ class TweetFilterPage(tk.Frame):
 class TweetDeletePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        tk.Label(self, text="Are you sure? Once your tweets are deleted they are gone for good!").grid(row=0, column=0, columnspan=10, padx=5, pady=15)
+        tk.Button(self, text="Delete All Tweets", bg='red', command=self.delete_all).grid(row=1, column=0, columnspan=10)
+        tk.Button(self, text="Go Back", command=self.back).grid(row=2, column=9, sticky='e')
+
+    def delete_all(self):
+        try:
+            for tweet_id in self.controller.tweets['id']:
+                self.controller.api.destroy_status(tweet_id)
+        except AttributeError as e:
+            print(f"{e}\nAPI not found")
+        except tweepy.error.TweepError as e:
+            print(f"{e}\nTweet(s) already deleted!")
+            self.message.set("Tweet(s) already deleted!")
+
+    def back(self):
+        self.controller.geometry('427x375')
+        self.controller.show_frame(TweetMonthsPage)
