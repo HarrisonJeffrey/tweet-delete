@@ -126,17 +126,17 @@ class TweetStartPage(tk.Frame):
 
     def next_page(self):
         # DELETE AFTER DEBUG
-        self.controller.frames[TweetMonthsPage].show_months()
-        self.controller.show_frame(TweetMonthsPage)
+        # self.controller.frames[TweetMonthsPage].show_months()
+        # self.controller.show_frame(TweetMonthsPage)
 
-        # UNCOMMENT AFTER DEBUG
-        # self.verify_auth()
-        #
-        # if False in self.verify:
-        #     self.message.set("Something isn't right. Have you loaded your tweets.js archive and verified access?")
-        # else:
-        #     self.message.set("")
-        #     self.controller.show_frame(TweetMonthsPage)
+        self.verify_auth()
+
+        if False in self.verify:
+            self.message.set("Something isn't right. Have you loaded your tweets.js archive and verified access?")
+        else:
+            self.message.set("")
+            self.controller.frames[TweetMonthsPage].show_months()
+            self.controller.show_frame(TweetMonthsPage)
 
 
 class TweetMonthsPage(tk.Frame):
@@ -158,6 +158,10 @@ class TweetMonthsPage(tk.Frame):
         self.canvas.grid(row=1, column=0, columnspan=9)
         self.scrollbar.grid(row=1, column=9, sticky='ns')
 
+        #TODO bad word filter
+        tk.Button(self, text="Grab tweets with bad words only!", command=self.bad_words).grid(row=2, column=1, columnspan=8)
+        tk.Button(self, text="Delete all tweets!", bg='red', command=self.delete_all).grid(row=2, column=10)
+
     def show_months(self):
         self.controller.geometry('400x360')
         try:
@@ -174,6 +178,12 @@ class TweetMonthsPage(tk.Frame):
         self.controller.view_month = date
         self.controller.frames[TweetFilterPage].show_tweets()
         self.controller.show_frame(TweetFilterPage)
+
+    def bad_words(self):
+        pass
+
+    def delete_all(self):
+        pass
 
 
 class TweetFilterPage(tk.Frame):
@@ -261,15 +271,15 @@ class TweetFilterPage(tk.Frame):
         select_indices = [i for i, x in enumerate(selected) if x == 1]
         self.controller.view_tweets = self.controller.view_tweets.iloc[select_indices, :]
         print(f"Deleting {selected.count(1)} tweets!")
-        print(self.controller.view_tweets)
 
         try:
-            for tweet in self.controller.view_tweets:
-                print(tweet)
-                self.controller.api.destroy_status(tweet['id'])
+            for tweet_id in self.controller.view_tweets['id']:
+                self.controller.api.destroy_status(tweet_id)
         except AttributeError as e:
-            print(e)
-            print("API not found")
+            print(f"{e}\nAPI not found")
+        except tweepy.error.TweepError as e:
+            print(f"{e}\nTweet(s) already deleted!")
+            self.message.set("Tweet(s) already deleted!")
 
     def back(self):
         self.confirm_button.grid_forget()
