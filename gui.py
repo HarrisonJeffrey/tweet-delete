@@ -126,17 +126,17 @@ class TweetStartPage(tk.Frame):
 
     def next_page(self):
         # DELETE AFTER DEBUG
-        # self.controller.frames[TweetMonthsPage].show_months()
-        # self.controller.show_frame(TweetMonthsPage)
+        self.controller.frames[TweetMonthsPage].show_months()
+        self.controller.show_frame(TweetMonthsPage)
 
-        self.verify_auth()
-
-        if False in self.verify:
-            self.message.set("Something isn't right. Have you loaded your tweets.js archive and verified access?")
-        else:
-            self.message.set("")
-            self.controller.frames[TweetMonthsPage].show_months()
-            self.controller.show_frame(TweetMonthsPage)
+        # self.verify_auth()
+        #
+        # if False in self.verify:
+        #     self.message.set("Something isn't right. Have you loaded your tweets.js archive and verified access?")
+        # else:
+        #     self.message.set("")
+        #     self.controller.frames[TweetMonthsPage].show_months()
+        #     self.controller.show_frame(TweetMonthsPage)
 
 
 class TweetMonthsPage(tk.Frame):
@@ -159,8 +159,8 @@ class TweetMonthsPage(tk.Frame):
         self.scrollbar.grid(row=1, column=9, sticky='ns')
 
         #TODO bad word filter
-        tk.Button(self, text="Grab tweets with bad words only!", command=self.bad_words).grid(row=2, column=1, columnspan=8)
-        tk.Button(self, text="Delete all tweets!", bg='red', command=self.delete_all).grid(row=2, column=10)
+        tk.Button(self, text="Grab tweets with bad words only!", command=self.bad_words).grid(row=2, column=0, columnspan=7, pady=10)
+        tk.Button(self, text="Delete all tweets!", bg='red', command=self.delete_all).grid(row=2, column=8, pady=10)
 
     def show_months(self):
         self.controller.geometry('400x360')
@@ -180,9 +180,11 @@ class TweetMonthsPage(tk.Frame):
         self.controller.show_frame(TweetFilterPage)
 
     def bad_words(self):
+        #TODO list of bad words
         pass
 
     def delete_all(self):
+        #TODO take to confirmation page then delete every tweet
         pass
 
 
@@ -282,6 +284,7 @@ class TweetFilterPage(tk.Frame):
             self.message.set("Tweet(s) already deleted!")
 
     def back(self):
+        self.selected_tweets = [check.set(0) for check in self.selected_tweets]
         self.confirm_button.grid_forget()
         self.build_canvas()
         self.controller.geometry('400x360')
