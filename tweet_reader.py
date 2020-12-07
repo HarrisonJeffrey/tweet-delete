@@ -3,7 +3,9 @@ import json
 import pandas as pd
 
 
+# Function to convert tweet.js file into a pandas dataframe, removing redundant columns
 def convert_js_file(filepath):
+    """Takes a filepath directing to tweet.js archive and returns a pandas dataframe of tweets ordered by date"""
     with io.open(filepath, encoding='utf8') as js_file:
         data = js_file.read()
         objs = data[data.find('['): data.rfind(']')+1]
@@ -19,7 +21,9 @@ def convert_js_file(filepath):
     return tweets.sort_values(by='created_at')
 
 
+# Return all tweets between two dates (if only start is inputted then return all tweets after, reverse for end)
 def get_tweets_by_date(tweets, start=None, end=None):
+    """Received dataframe of tweets along with a start and end datetime and returns tweet in the range"""
     if start and end:
         return tweets[(tweets['created_at'] >= start) & (tweets['created_at'] <= end)]
     elif start:
@@ -28,7 +32,9 @@ def get_tweets_by_date(tweets, start=None, end=None):
         return tweets[tweets['created_at'] <= end]
 
 
+# Function that converts text file containing profanities tagged by google into a list and return it
 def grab_bad_words():
+    """Collects a list of bad words from textfile"""
     with open('google_profanity_words.txt') as f:
         bad_words = f.readlines()
     bad_words = [word.strip() for word in bad_words]

@@ -9,19 +9,23 @@ import webbrowser
 from tweet_reader import convert_js_file, grab_bad_words
 
 
+# Main app
 class TweetDelete(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
+        # Set window title, size, and prevent resizing
         self.title("Tweet Delete")
         self.resizable(False, False)
         self.geometry('320x420')
 
+        # Grab Twitter logo and set as icon
         img = Image.open('Twitter_Logo_Blue.png')
         img = img.resize((100, 100), Image.ANTIALIAS)
         self.twitter_logo = ImageTk.PhotoImage(img)
         self.iconphoto(False, self.twitter_logo)
 
+        # Create empty class variables for tweets, tweepy_api, tweets being viewed, and month being viewed
         self.tweets = None
         self.api = None
         self.view_tweets = None
@@ -30,6 +34,7 @@ class TweetDelete(tk.Tk):
         container = tk.Frame(self)
         container.pack()
 
+        # Create pages
         self.frames = {}
 
         for F in (TweetStartPage, TweetMonthsPage, TweetFilterPage, TweetDeletePage):
@@ -45,17 +50,22 @@ class TweetDelete(tk.Tk):
         frame.tkraise()
 
 
+# Initial page
 class TweetStartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         self.parent = parent
 
+        # Grab environment variables
         consumer_key = config('consumer_key')
         consumer_secret = config('consumer_secret')
 
+        # Authorise consumer details with tweepy
         self.auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+        # Set auth url
         self.redirect_url = None
+        # List to verify tweets have been loaded and api authorised
         self.verify = [False, False]
 
         self.twitter_logo = controller.twitter_logo
@@ -84,6 +94,7 @@ class TweetStartPage(tk.Frame):
 
         ttk.Button(self, text="Continue", command=self.next_page).grid(row=10, column=0, columnspan=10, padx=5, pady=5)
 
+    # Authorise app with tweepy and direct user to verifier
     def grab_auth(self):
         if self.redirect_url is None:
             try:
@@ -96,6 +107,7 @@ class TweetStartPage(tk.Frame):
 
         webbrowser.open(self.redirect_url, new=0, autoraise=True)
 
+    # Load tweet.js file
     def load_file(self):
         tweets_filepath = askopenfilename(initialdir="C:/", title="Select tweets.js file",
                                           filetypes=(('json files', '*.js'), ('All files', '*')))
@@ -110,6 +122,7 @@ class TweetStartPage(tk.Frame):
             self.message.set(error)
             self.verify[0] = False
 
+    # Verify users twitter verifier with tweepy api
     def verify_auth(self):
         try:
             self.auth.get_access_token(self.verifier.get())
@@ -122,21 +135,19 @@ class TweetStartPage(tk.Frame):
             self.message.set(error)
             self.verify[1] = False
 
+    # Move to the next page
     def next_page(self):
-        # DELETE AFTER DEBUG
-        self.controller.frames[TweetMonthsPage].show_months()
-        self.controller.show_frame(TweetMonthsPage)
+        self.verify_auth()
 
-        # self.verify_auth()
-        #
-        # if False in self.verify:
-        #     self.message.set("Something isn't right. Have you loaded your tweets.js archive and verified access?")
-        # else:
-        #     self.message.set("")
-        #     self.controller.frames[TweetMonthsPage].show_months()
-        #     self.controller.show_frame(TweetMonthsPage)
+        if False in self.verify:
+            self.message.set("Something isn't right. Have you loaded your tweets.js archive and verified access?")
+        else:
+            self.message.set("")
+            self.controller.frames[TweetMonthsPage].show_months()
+            self.controller.show_frame(TweetMonthsPage)
 
 
+# Page displaying all months where tweets exist
 class TweetMonthsPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -144,6 +155,7 @@ class TweetMonthsPage(tk.Frame):
 
         tk.Label(self, text="Select a month below to start browsing tweets to delete.", wraplength=350).grid(row=0, column=0, columnspan=10, padx=10, pady=10)
 
+        # Scrollable canvas
         self.canvas = tk.Canvas(self)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas)
@@ -156,10 +168,10 @@ class TweetMonthsPage(tk.Frame):
         self.canvas.grid(row=1, column=0, columnspan=9)
         self.scrollbar.grid(row=1, column=9, sticky='ns')
 
-        #TODO bad word filter
         tk.Button(self, text="Grab tweets with bad words only!\n(This may take some time if you have a lot of tweets!)", command=self.bad_words).grid(row=2, column=0, columnspan=7, pady=10, padx=10)
         tk.Button(self, text="Delete all tweets!", bg='red', command=self.delete_all).grid(row=2, column=8, pady=10)
 
+    # Create button for each month where tweets exist
     def show_months(self):
         self.controller.geometry('427x375')
         try:
@@ -170,6 +182,7 @@ class TweetMonthsPage(tk.Frame):
         except TypeError:
             print("Error. Tweets not loaded.")
 
+    # Set the view_month to the button selected, filter tweets, and show all tweets from that month
     def view_month(self, date):
         tweets_month = self.controller.tweets[self.controller.tweets['month_year'] == date]
         self.controller.view_tweets = tweets_month
@@ -177,7 +190,9 @@ class TweetMonthsPage(tk.Frame):
         self.controller.frames[TweetFilterPage].show_tweets()
         self.controller.show_frame(TweetFilterPage)
 
+    # Check all tweets for words that google lists as profanities and display them
     def bad_words(self):
+        # Collect a list of bad words from Google's profanity filter
         bad_words = grab_bad_words()
         view_tweets = self.controller.tweets.copy()
         view_tweets['bad_word'] = view_tweets['full_text'].apply(lambda tweet: any([word in tweet for word in bad_words]))
@@ -192,11 +207,13 @@ class TweetMonthsPage(tk.Frame):
         self.controller.frames[TweetFilterPage].show_tweets()
         self.controller.show_frame(TweetFilterPage)
 
+    # Open confirmation page for deleting all tweets
     def delete_all(self):
         self.controller.geometry('380x150')
         self.controller.show_frame(TweetDeletePage)
 
 
+# Page that displays all tweets filtered from the previous page
 class TweetFilterPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -220,6 +237,7 @@ class TweetFilterPage(tk.Frame):
                                        bg='orange').grid(row=3, column=4)
         self.back_button = tk.Button(self, text="Back", command=self.back, width='10').grid(row=3, column=8)
 
+    # Scrollable frame
     def build_canvas(self):
         self.canvas = tk.Canvas(self)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
@@ -233,6 +251,7 @@ class TweetFilterPage(tk.Frame):
         self.canvas.grid(row=1, column=0, columnspan=9, pady=10)
         self.scrollbar.grid(row=1, column=10, sticky='ns')
 
+    # Create frame containing all tweets, date, and a checkbox
     def show_tweets(self):
         self.controller.geometry('825x500')
         self.controller.resizable(False, True)
@@ -251,20 +270,7 @@ class TweetFilterPage(tk.Frame):
         except TypeError:
             print("No tweets loaded")
 
-    def grab_tweets(self):
-        try:
-            page_tweets = (self.page.get() + 1) * 10
-            if len(self.controller.tweets) < page_tweets:
-                print(page_tweets)
-                print(len(self.controller.tweets))
-                page_tweets = page_tweets - (len(self.controller.tweets) - page_tweets)
-            for i in range(self.page.get(), page_tweets):
-                tk.Radiobutton(self, padx=20, variable=self.selected_tweets[i], value=1).grid(row=4+i+1, column=0)
-                tk.Label(self, text=self.controller.tweets['created_at'].iloc[i]).grid(row=4+i+1, column=1, columnspan=2)
-                tk.Label(self, text=self.controller.tweets['full_text'].iloc[i]).grid(row=4+i+1, column=3, columnspan=7, padx=5)
-        except TypeError:
-            print("No tweets loaded")
-
+    # Function to (de)select all shown tweets
     def select_all(self):
         for i in range(len(self.selected_tweets)):
             if self.selected_tweets[i].get():
@@ -272,9 +278,11 @@ class TweetFilterPage(tk.Frame):
             else:
                 self.selected_tweets[i].set(1)
 
+    # Show delete confirmation button
     def confirm(self):
         self.confirm_button.grid(row=3, column=5)
 
+    # Function to delete all selected tweets
     def delete(self):
         selected = [check.get() for check in self.selected_tweets]
         select_indices = [i for i, x in enumerate(selected) if x == 1]
@@ -292,6 +300,7 @@ class TweetFilterPage(tk.Frame):
             print(f"{e}\nTweet(s) already deleted!")
             self.message.set("Tweet(s) already deleted!")
 
+    # Head back to page displaying all months
     def back(self):
         self.select_all_check.set(0)
         self.selected_tweets = [check.set(0) for check in self.selected_tweets]
@@ -301,6 +310,7 @@ class TweetFilterPage(tk.Frame):
         self.controller.show_frame(TweetMonthsPage)
 
 
+# Confirmation page for delete all button
 class TweetDeletePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -310,6 +320,7 @@ class TweetDeletePage(tk.Frame):
         tk.Button(self, text="Delete All Tweets", bg='red', command=self.delete_all).grid(row=1, column=0, columnspan=10)
         tk.Button(self, text="Go Back", command=self.back).grid(row=2, column=9, sticky='e')
 
+    # Deletes every tweet
     def delete_all(self):
         try:
             for tweet_id in self.controller.tweets['id']:
@@ -320,6 +331,7 @@ class TweetDeletePage(tk.Frame):
             print(f"{e}\nTweet(s) already deleted!")
             self.message.set("Tweet(s) already deleted!")
 
+    # Head back to month select page
     def back(self):
         self.controller.geometry('427x375')
         self.controller.show_frame(TweetMonthsPage)
